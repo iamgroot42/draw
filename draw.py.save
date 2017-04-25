@@ -21,9 +21,7 @@ FLAGS = tf.flags.FLAGS
 
 ## MODEL PARAMETERS ## 
 
-#A,B = 28,28 # image width,height
-#A,B = 32,32
-A, B = 256, 512
+A,B = 28,28 # image width,height
 img_size = B*A # the canvas size
 enc_size = 256 # number of hidden units / output size in LSTM
 dec_size = 256
@@ -74,14 +72,12 @@ def filterbank(gx, gy, sigma2,delta, N):
 
 def attn_window(scope,h_dec,N):
     with tf.variable_scope(scope,reuse=DO_SHARE):
-        #params=linear(h_dec,5)
-	params=linear(h_dec,7)
-    # gx_,gy_,log_sigma2,log_delta,log_gamma=tf.split(params,5,1)
-    gx_,gy_,log_sigma2,log_delta,log_gamma, scalea, scaleb=tf.split(params,7,1)
-    # gx=(A+1)/2*(gx_+1)
-    gx=scalea * (gx_+1)
-    # gy=(B+1)/2*(gy_+1)
-    gy=scaleb * (gy_+1)
+       #        params=linear(h_dec,5)
+        
+    # gx_,gy_,log_sigma2,log_delta,log_gamma=tf.split(1,5,params)
+    gx_,gy_,log_sigma2,log_delta,log_gamma=tf.split(params,5,1)
+    gx=(A+1)/2*(gx_+1)
+    gy=(B+1)/2*(gy_+1)
     sigma2=tf.exp(log_sigma2)
     delta=(max(A,B)-1)/(N-1)*tf.exp(log_delta) # batch x N
     return filterbank(gx,gy,sigma2,delta,N)+(tf.exp(log_gamma),)
@@ -215,18 +211,6 @@ if not os.path.exists(data_directory):
 	os.makedirs(data_directory)
 train_data = mnist.input_data.read_data_sets(data_directory, one_hot=True).train # binarized (0-1) mnist data
 
-
-from keras.datasets import cifar10
-
-(X_train, y_train), (X_test, y_test) = cifar10.load_data()
-#X_train = X_train.reshape(X_train.shape[0], 3, img_rows, img_cols)
-#X_test = X_test.reshape(X_test.shape[0], 3, img_rows, img_cols)
-X_train = X_train.astype('float32')
-X_test = X_test.astype('float32')
-X_train /= 255
-X_test /= 255
-	
-
 fetches=[]
 fetches.extend([Lx,Lz,train_op])
 Lxs=[0]*train_iters
@@ -239,8 +223,7 @@ tf.global_variables_initializer().run()
 #saver.restore(sess, "/tmp/draw/drawmodel.ckpt") # to restore from model, uncomment this line
 
 for i in range(train_iters):
-	#xtrain,_=train_data.next_batch(batch_size) # xtrain is (batch_size x img_size)
-	xtrain = X_train[i * batch_size: (i+1) * batch_size]
+	xtrain,_=train_data.next_batch(batch_size) # xtrain is (batch_size x img_size)
 	feed_dict={x:xtrain}
 	results=sess.run(fetches,feed_dict)
 	Lxs[i],Lzs[i],_=results
